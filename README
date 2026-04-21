@@ -1,1 +1,269 @@
-Generic single-database configuration.
+# 🛒 Restaurant / Orders Management API (FastAPI)
+
+A **FastAPI-based backend system** for managing users, authentication, and orders.
+The project implements **JWT authentication, role-based access control (admin/user), and CRUD operations** using **SQLAlchemy ORM**.
+
+---
+
+## 🚀 Features
+
+* 🔐 User authentication (JWT-based)
+* 👤 Role-based access (admin / user)
+* 🧾 Create, read, update, delete orders
+* 🔒 Password hashing using bcrypt
+* 🗄️ SQLAlchemy ORM with relational database support
+* ⚡ FastAPI async performance
+* 📦 Clean modular structure using routers
+
+---
+
+## 🏗️ Tech Stack
+
+* **FastAPI** – Backend framework
+* **SQLAlchemy** – ORM for database handling
+* **Pydantic** – Data validation
+* **JWT (python-jose)** – Authentication
+* **Passlib (bcrypt)** – Password hashing
+* **Uvicorn** – ASGI server
+
+---
+
+## 📁 Project Structure (Recommended)
+
+```txt
+Restaurant_App/
+│
+├── main.py
+├── database.py
+├── models.py
+│
+├── routers/
+│   ├── auth.py
+│   ├── admin.py
+│   ├── orders.py
+│   └── customers.py
+│
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1️⃣ Create a Virtual Environment
+
+Make sure you are inside your project folder, then run:
+
+```bash
+python -m venv restaurant_app_env
+```
+
+---
+
+### 2️⃣ Activate the Virtual Environment
+
+#### Windows (PowerShell)
+
+```bash
+restaurant_app_env\Scripts\Activate.ps1
+```
+
+#### Windows (CMD)
+
+```bash
+restaurant_app_env\Scripts\activate.bat
+```
+
+#### Mac / Linux
+
+```bash
+source restaurant_app_env/bin/activate
+```
+
+---
+
+### 3️⃣ Upgrade pip (Recommended)
+
+```bash
+python -m pip install --upgrade pip
+```
+
+---
+
+### 4️⃣ Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## ▶️ Running the Project
+
+Start the FastAPI server using **Uvicorn**:
+
+```bash
+uvicorn main:app --reload
+```
+
+---
+
+## 🌐 API Documentation
+
+Once the server is running, open your browser:
+
+### Swagger UI
+
+```
+http://127.0.0.1:8000/docs
+```
+
+### Redoc
+
+```
+http://127.0.0.1:8000/redoc
+```
+
+---
+
+## 🔐 Authentication Flow
+
+### 1. Create a user
+
+```
+POST /auth/
+```
+
+### 2. Login to get token
+
+```
+POST /auth/token
+```
+
+You will receive:
+
+```json
+{
+  "access_token": "your_jwt_token",
+  "token_type": "bearer"
+}
+```
+
+---
+
+### 3. Use token in requests
+
+Add this header:
+
+```
+Authorization: Bearer <your_token>
+```
+
+---
+
+## 👤 User Features
+
+* Get profile info:
+
+```
+GET /user/
+```
+
+* Change password:
+
+```
+PUT /user/password
+```
+
+* Update phone number:
+
+```
+PUT /user/phonenumber/{phone_number}
+```
+
+---
+
+## 🧾 Orders Features
+
+* Create order:
+
+```
+POST /todo
+```
+
+* Get all user orders:
+
+```
+GET / 
+```
+
+* Get specific order:
+
+```
+GET /todo/{id}
+```
+
+* Update order:
+
+```
+PUT /todo/{id}
+```
+
+* Delete order:
+
+```
+DELETE /todo/{id}
+```
+
+---
+
+## 🛡️ Admin Features
+
+Admin-only endpoints:
+
+* View all orders:
+
+```
+GET /admin/todo
+```
+
+* Delete any order:
+
+```
+DELETE /admin/todo/{id}
+```
+
+---
+
+## ⚠️ Important Notes
+
+* Only users with role `"admin"` can access admin routes
+* Passwords are securely hashed using bcrypt
+* JWT tokens expire after **20 minutes**
+* Database tables are auto-created on startup
+
+---
+
+## 🧠 Future Improvements
+
+* Add Alembic migrations
+* Add refresh tokens
+* Add pagination for orders
+* Add logging system
+* Add Docker support
+* Add email verification
+
+---
+
+## 👨‍💻 Author
+
+Built as a FastAPI backend system for learning and production-ready API design.
+
+---
+
+If you want, I can next help you:
+
+* turn this into a **Dockerized production setup**
+* or fix small bugs in your SQLAlchemy models (there are a couple of important ones)
+* or add a **Postman collection for testing your APIs**

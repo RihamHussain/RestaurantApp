@@ -3,3 +3,4 @@ alembic.ini
 .DS_Store
 *.pyc
 __pycache__/
+restaurant_app_env
