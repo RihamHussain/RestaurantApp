@@ -3,9 +3,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from models import Orders
+from models import Orders, OrdersStatus
 from database import SessionLocal
 from .auth import get_current_user
+import time
 
 router = APIRouter()
 
@@ -22,74 +23,74 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
-class TodoRequest(BaseModel):
-    title: str = Field(min_length=3)
-    description: str = Field(min_length=3, max_length=100)
-    priority: int = Field(gt=0, lt=6)
-    complete: bool
+class OrderRequest(BaseModel):
+    item: str = Field(min_length=3)
+    price: float = Field(gt=0.0)
+    time : int = Field (time.time())
+    status : OrdersStatus
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
 async def read_all(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    return db.query(Orders).filter(Orders.owner_id == user.get('id')).all()
+    return db.query(Orders).filter(Orders.customer_id == user.get('id')).all()
 
 
-@router.get("/todo/{todo_id}", status_code=status.HTTP_200_OK)
-async def read_todo(user: user_dependency, db: db_dependency, todo_id: int = Path(gt=0)):
+@router.get("/orders/{order_id}", status_code=status.HTTP_200_OK)
+async def read_orders(user: user_dependency, db: db_dependency, order_id: int = Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
-    todo_model = db.query(Orders).filter(Orders.id == todo_id)\
-        .filter(Orders.owner_id == user.get('id')).first()
-    if todo_model is not None:
-        return todo_model
-    raise HTTPException(status_code=404, detail='Todo not found.')
+    order_model = db.query(Orders).filter(Orders.id == order_id)\
+        .filter(Orders.customer_id == user.get('id')).first()
+    if order_model is not None:
+        return order_model
+    raise HTTPException(status_code=404, detail='Order not found.')
 
 
-@router.post("/todo", status_code=status.HTTP_201_CREATED)
-async def create_todo(user: user_dependency, db: db_dependency,
-                      todo_request: TodoRequest):
+@router.post("/orders", status_code=status.HTTP_201_CREATED)
+async def create_orders(user: user_dependency, db: db_dependency,
+                      orders_request: OrderRequest):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    todo_model = Orders(**todo_request.model_dump(), owner_id=user.get('id'))
-
-    db.add(todo_model)
+    orders_model = Orders(**orders_request.model_dump(), customer_id=user.get('id'))
+    print("orders_model", orders_model)
+    db.add(orders_model)
     db.commit()
 
 
-@router.put("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def update_todo(user: user_dependency, db: db_dependency,
-                      todo_request: TodoRequest,
-                      todo_id: int = Path(gt=0)):
+@router.put("/orders/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_orders(user: user_dependency, db: db_dependency,
+                      orders_request: OrderRequest,
+                      order_id: int = Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
-    todo_model = db.query(Orders).filter(Orders.id == todo_id)\
-        .filter(Orders.owner_id == user.get('id')).first()
-    if todo_model is None:
-        raise HTTPException(status_code=404, detail='Todo not found.')
+    order_model = db.query(Orders).filter(Orders.id == order_id)\
+        .filter(Orders.customer_id == user.get('id')).first()
+    if order_model is None:
+        raise HTTPException(status_code=404, detail='Order not found.')
 
-    todo_model.title = todo_request.title
-    todo_model.description = todo_request.description
-    todo_model.priority = todo_request.priority
-    todo_model.complete = todo_request.complete
+    order_model.item = orders_request.item
+    order_model.price = orders_request.price
+    order_model.time = orders_request.time
+    order_model.status = orders_request.status
 
-    db.add(todo_model)
+    db.add(order_model)
     db.commit()
 
 
-@router.delete("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(user: user_dependency, db: db_dependency, todo_id: int = Path(gt=0)):
+@router.delete("/orders/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_orders(user: user_dependency, db: db_dependency, order_id: int = Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
-    todo_model = db.query(Orders).filter(Orders.id == todo_id)\
-        .filter(Orders.owner_id == user.get('id')).first()
-    if todo_model is None:
-        raise HTTPException(status_code=404, detail='Todo not found.')
-    db.query(Orders).filter(Orders.id == todo_id).filter(Orders.owner_id == user.get('id')).delete()
+    orders_model = db.query(Orders).filter(Orders.id == order_id)\
+        .filter(Orders.customer_id == user.get('id')).first()
+    if orders_model is None:
+        raise HTTPException(status_code=404, detail='Order not found.')
+    db.query(Orders).filter(Orders.id == order_id).filter(Orders.customer_id == user.get('id')).delete()
 
     db.commit()
 

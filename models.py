@@ -8,7 +8,12 @@ class OrdersStatus(enum.Enum):
     COMPLETED = "completed"
     CANCELED = "canceled"
 
-class Customer(Base):
+class Role(enum.Enum):
+    CUSTOMER = "customer"
+    ADMIN = "admin"
+    OWNER = "owner"
+
+class User(Base):
     __tablename__ = 'customers'
 
     id = Column(Integer, primary_key=True, index=True)
@@ -18,7 +23,7 @@ class Customer(Base):
     last_name = Column(String)
     hashed_password = Column(String)
     phone_number = Column(String)
-
+    role = Column(Enum(Role), default=Role.CUSTOMER)
 
 class Orders(Base):
     __tablename__ = 'orders'

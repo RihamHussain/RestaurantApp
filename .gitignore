@@ -4,3 +4,5 @@ alembic.ini
 *.pyc
 __pycache__/
 restaurant_app_env
+*.db
+restaurant_app.db
