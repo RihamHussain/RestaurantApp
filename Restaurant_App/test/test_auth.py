@@ -2,6 +2,7 @@ from .utils import *
 from ..routers.auth import get_db, authenticate_user, create_access_token, get_current_user
 from datetime import timedelta
 from jose import jwt
+from fastapi import HTTPException
 
 app.dependency_overrides[get_db] = override_get_db
 db = TestingSessionLocal()
@@ -39,3 +40,13 @@ async def test_get_current_user_valid_token(test_user):
     assert current_user['username'] == test_user.username
     assert current_user['id'] == test_user.id
     assert current_user['role'] == Role.CUSTOMER.value
+
+async def test_get_current_user_missing_payload():
+    encode = {'role': Role.CUSTOMER.value}
+    token = jwt.encode(encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    
+    with pytest.raises(HTTPException) as excinfo:
+        await get_current_user(token)
+    
+    assert excinfo.value.status_code == 401
+    assert excinfo.value.detail == 'Could not validate user.'
