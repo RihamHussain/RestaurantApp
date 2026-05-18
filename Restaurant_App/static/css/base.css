@@ -1,0 +1,47 @@
+/* Custom Styles for Restaurant App */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8f9fa;
+}
+
+.hero-section {
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80');
+    background-size: cover;
+    background-position: center;
+    height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+}
+
+.card-feature {
+    transition: transform 0.3s;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.card-feature:hover {
+    transform: translateY(-10px);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    color: #ff4757 !important;
+}
+
+/* Career Bridge Styles */
+.bridge-text {
+    letter-spacing: 0.5px;
+}
+
+.linkedin-link {
+    transition: opacity 0.2s;
+}
+
+.linkedin-link:hover {
+    opacity: 0.8;
+}

@@ -8,8 +8,10 @@ from ..database import SessionLocal
 from .auth import get_current_user
 import time
 
-router = APIRouter()
-
+router = APIRouter(
+    prefix='/order',
+    tags=['orders']
+)
 
 def get_db():
     db = SessionLocal()

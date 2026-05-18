@@ -1,5 +1,5 @@
 from .database import Base
-from sqlalchemy import Column, Integer, String, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
 import enum 
 import time
 
@@ -14,7 +14,7 @@ class Role(enum.Enum):
     OWNER = "owner"
 
 class User(Base):
-    __tablename__ = 'customers'
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True)
@@ -24,6 +24,8 @@ class User(Base):
     hashed_password = Column(String)
     phone_number = Column(String)
     role = Column(String, default=Role.CUSTOMER.value)
+    is_superadmin = Column(Boolean, default=False)
+
 
 class Orders(Base):
     __tablename__ = 'orders'
@@ -33,4 +35,4 @@ class Orders(Base):
     price = Column(Float)
     time = Column(Integer, default=lambda: int(time.time()))
     order_status = Column(String, default=OrdersStatus.PENDING.value)
-    customer_id = Column(Integer, ForeignKey("customers.id"))
+    customer_id = Column(Integer, ForeignKey("users.id"))

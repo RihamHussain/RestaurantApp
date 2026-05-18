@@ -1,11 +1,27 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from .models import Base
 from .database import engine
 from .routers import auth, orders, admin, users
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
+
+templates = Jinja2Templates(directory="Restaurant_App/templates")
+
+app.mount("/static", StaticFiles(directory="Restaurant_App/static"), name="static")
+
+@app.get("/")
+def test(request: Request):
+    # Use keyword arguments: request=..., name=..., context=...
+    return templates.TemplateResponse(
+        request=request, 
+        name="home.html", 
+        context={"message": "Welcome to the Restaurant App!"}
+    )
+
 
 @app.get("/health", status_code=200)
 def health_check():

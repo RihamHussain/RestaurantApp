@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
@@ -10,20 +10,36 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
 from ..helpers import config
+from fastapi.templating import Jinja2Templates
+import os
 
 settings = config.get_settings()
-
-router = APIRouter(
-    prefix='/auth',
-    tags=['auth']
-)
-
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
 
+router = APIRouter(
+    prefix='/auth',
+    tags=['auth']
+)
+
+# Setup templates path (consistent with your main.py)
+base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+templates = Jinja2Templates(directory=os.path.join(base_dir, "templates"))
+
+
+# 1. ADD THIS: Route to show the Login Page
+@router.get("/login")
+async def render_login_page(request: Request):
+    return templates.TemplateResponse(request=request, name="login.html")
+
+# 2. ADD THIS: Route to show the Register Page
+@router.get("/register")
+async def render_register_page(request: Request):
+    # Make sure you create a register.html later!
+    return templates.TemplateResponse(request=request, name="register.html")
 
 class Create_User_Request(BaseModel):
     username: str
@@ -60,8 +76,8 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 
-def create_access_token(username: str, user_id: int, expires_delta: timedelta, role: Role):
-    encode = {'sub': username, 'id': user_id, 'role': role}
+def create_access_token(username: str, user_id: int, expires_delta: timedelta, role: Role, is_superadmin: bool):
+    encode = {'sub': username, 'id': user_id, 'role': role, 'is_superadmin': is_superadmin}
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -73,18 +89,20 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
         user_role: str = payload.get('role')
+        is_superadmin: bool = payload.get('is_superadmin', False)
         if username is None or user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail='Could not validate user.')
-        return {'username': username, 'id': user_id, 'role': user_role}
+        return {'username': username, 'id': user_id, 'role': user_role, 'is_superadmin': is_superadmin}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Could not validate user.')
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(db: db_dependency,
-                      create_user_request: Create_User_Request):
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def create_user(db: db_dependency, create_user_request: Create_User_Request):
+    # SECURITY FIX: Always force role to 'customer' regardless of input
+    
     create_user_model = User(
         email=create_user_request.email,
         username=create_user_request.username,
@@ -92,9 +110,9 @@ async def create_user(db: db_dependency,
         last_name=create_user_request.last_name,
         hashed_password=bcrypt_context.hash(create_user_request.password),
         phone_number=create_user_request.phone_number,
-        role=create_user_request.role
+        role="customer",
+        is_superadmin=False 
     )
-
     db.add(create_user_model)
     db.commit()
 
@@ -106,6 +124,6 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Could not validate user.')
-    token = create_access_token(user.username, user.id, timedelta(minutes=20), user.role)
+    token = create_access_token(user.username, user.id, timedelta(minutes=20), user.role, user.is_superadmin)
 
     return {'access_token': token, 'token_type': 'bearer'}
