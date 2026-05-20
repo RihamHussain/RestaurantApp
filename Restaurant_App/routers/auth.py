@@ -99,8 +99,23 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
                             detail='Could not validate user.')
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post("/register")
 async def create_user(db: db_dependency, create_user_request: Create_User_Request):
+
+    # 1. Check if Username exists
+    user_model = db.query(User).filter(User.username == create_user_request.username).first()
+    if user_model:
+        raise HTTPException(status_code=400, detail="Username already taken.")
+
+    # 2. Check if Email exists
+    email_model = db.query(User).filter(User.email == create_user_request.email).first()
+    if email_model:
+        raise HTTPException(status_code=400, detail="Email already registered.")
+    
+    # 3. Password Validation (Manual check if not using Pydantic)
+    if len(create_user_request.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+    
     # SECURITY FIX: Always force role to 'customer' regardless of input
     
     create_user_model = User(

@@ -1,5 +1,4 @@
 {%include 'layout.html' %}
-    <!-- Simple Nav -->
     <nav class="navbar navbar-light bg-white shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="/">🍕 RestaurantApp</a>
@@ -9,12 +8,11 @@
     <div class="container register-container">
         <div class="register-card">
             <h2 class="text-center fw-bold mb-2">Create Account</h2>
-            <p class="text-center text-muted mb-4">Join our community and start ordering!</p>
+            <p class="text-center text-muted mb-4">Join our community!</p>
             
-            <!-- Alert for Success/Error -->
             <div id="alert-box" class="alert d-none" role="alert"></div>
 
-            <form id="registerForm">
+            <form id="registerForm" novalidate>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">First Name</label>
@@ -30,98 +28,136 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Username</label>
                         <input type="text" class="form-control" id="username" required>
+                        <div id="username-error" class="invalid-feedback">Username is taken.</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Email</label>
                         <input type="email" class="form-control" id="email" required>
+                        <div id="email-error" class="invalid-feedback">Email already registered.</div>
                     </div>
                 </div>
 
+                <!-- ADDED THIS FIELD BACK - WITHOUT THIS THE SCRIPT CRASHES -->
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-12 mb-3">
                         <label class="form-label">Phone Number</label>
                         <input type="text" class="form-control" id="phone_number" required>
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" required minlength="6">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password" required minlength="8">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Verify Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="verify_password" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('verify_password', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="form-label">Verify Password</label>
-                    <input type="password" class="form-control" id="verify_password" required minlength="6">
-                </div>
+
                 <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">Sign Up</button>
             </form>
-
-            <p class="text-center mt-4 mb-0">
-                Already have an account? <a href="/auth/login" class="text-danger text-decoration-none">Login Here</a>
-            </p>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-5 mt-5">
-        <div class="container text-center">
-            <p class="mb-2">&copy; <span id="year"></span> <strong>Restaurant Management System</strong></p>
-            <p class="mb-1">
-                Developed by 
-                <a href="https://www.linkedin.com/in/riham-a-hussain/" target="_blank" class="fw-bold text-info text-decoration-none">
-                   Riham Hussain
-                </a>
-            </p>
-            <p class="small text-secondary bridge-text">
-                AI Engineer → <span class="text-info">Full Stack Engineer</span>
-            </p>
-        </div>
-    </footer>
-
     <script>
-        document.getElementById("year").innerHTML = new Date().getFullYear();
+    const registerForm = document.getElementById('registerForm');
+    const alertBox = document.getElementById('alert-box');
 
-        const registerForm = document.getElementById('registerForm');
-        const alertBox = document.getElementById('alert-box');
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log("Submit button clicked...");
 
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // 1. Reset visual states
+        const inputs = registerForm.querySelectorAll('input');
+        inputs.forEach(input => input.classList.remove('is-invalid'));
+        alertBox.classList.add('d-none');
 
-            // Prepare the JSON data based on your Create_User_Request model
-            const userData = {
-                username: document.getElementById('username').value,
-                email: document.getElementById('email').value,
-                first_name: document.getElementById('first_name').value,
-                last_name: document.getElementById('last_name').value,
-                password: document.getElementById('password').value,
-                phone_number: document.getElementById('phone_number').value,
-                role: "customer" // Hardcode this here too
-            };
+        // 2. Gather values
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const verifyPassword = document.getElementById('verify_password').value;
+        const phone = document.getElementById('phone_number').value;
 
-            try {
-                const response = await fetch('/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(userData)
-                });
+        // 3. Validation
+        if (password !== verifyPassword) {
+            document.getElementById('verify_password').classList.add('is-invalid');
+            alertBox.className = "alert alert-danger";
+            alertBox.innerText = "Passwords do not match!";
+            alertBox.classList.remove('d-none');
+            return;
+        }
 
-                if (response.ok) {
-                    alertBox.className = "alert alert-success";
-                    alertBox.innerText = "Registration successful! Redirecting to login...";
-                    alertBox.classList.remove('d-none');
-                    
-                    // Redirect after 2 seconds
-                    setTimeout(() => {
-                        window.location.href = '/auth/login';
-                    }, 2000);
+        const userData = {
+            username: username,
+            email: email,
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            password: password,
+            phone_number: phone,
+            role: "customer"
+        };
+
+        console.log("Sending data to backend:", userData);
+
+        try {
+            const response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alertBox.className = "alert alert-success";
+                alertBox.innerText = "Success! Redirecting...";
+                alertBox.classList.remove('d-none');
+                setTimeout(() => window.location.href = '/auth/login', 2000);
+            } else {
+                console.log("Backend error received:", result);
+                const msg = result.detail;
+                const lowerMsg = msg.toLowerCase();
+
+                if (lowerMsg.includes("username")) {
+                    document.getElementById('username').classList.add('is-invalid');
+                    document.getElementById('username-error').innerText = msg;
+                } else if (lowerMsg.includes("email")) {
+                    document.getElementById('email').classList.add('is-invalid');
+                    document.getElementById('email-error').innerText = msg;
                 } else {
-                    const errorData = await response.json();
                     alertBox.className = "alert alert-danger";
-                    alertBox.innerText = "Error: " + (errorData.detail || "Could not register");
+                    alertBox.innerText = msg;
                     alertBox.classList.remove('d-none');
                 }
-            } catch (error) {
-                console.error('Register Error:', error);
-                alert('Something went wrong. Please try again.');
             }
-        });
+        } catch (error) {
+            console.error("Fetch error:", error);
+            alert("Connection error. Is your server running?");
+        }
+    });
+
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
     </script>

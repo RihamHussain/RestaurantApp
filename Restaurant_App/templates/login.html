@@ -41,9 +41,15 @@
                     <input type="text" class="form-control" id="username" name="username" required>
                 </div>
                 <div class="mb-4">
-                    <label for="password" class="form-label">Password</label>
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
                     <input type="password" class="form-control" id="password" name="password" required>
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
                 </div>
+            </div>
+
                 <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">Login</button>
             </form>
 
@@ -111,6 +117,18 @@
                 alert('Something went wrong. Please try again.');
             }
         });
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
     </script>
 </body>
 </html>
