@@ -2,44 +2,49 @@ document.addEventListener('DOMContentLoaded', function() {
     updateNavbar();
 });
 
-function updateNavbar() {
-    const token = localStorage.getItem('access_token');
+async function updateNavbar() {
     const loggedOutDiv = document.getElementById('auth-links-logged-out');
     const loggedInDiv = document.getElementById('auth-links-logged-in');
     const usernameSpan = document.getElementById('display-username');
     const adminLink = document.getElementById('admin-only-link');
-    const adminCard = document.getElementById('admin-card'); // The card in the middle of the home page
+    const adminCard = document.getElementById('admin-card');
 
-    if (token) {
-        if (loggedOutDiv) loggedOutDiv.classList.add('d-none');
-        if (loggedInDiv) loggedInDiv.classList.remove('d-none');
+    try {
+        // ASK THE SERVER FOR USER INFO (Since we can't read cookies directly)
+        const response = await fetch('/auth/me', { credentials: 'include' });
 
-        try {
-            // Robust JWT decoding
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(window.atob(base64));
+        
+        if (response.ok) {
+            const user = await response.json(); // user = {username, role, ...}
             
-            if (usernameSpan) usernameSpan.innerText = payload.sub;
+            if (loggedOutDiv) loggedOutDiv.classList.add('d-none');
+            if (loggedInDiv) loggedInDiv.classList.remove('d-none');
+            if (usernameSpan) usernameSpan.innerText = user.username;
 
             // Check if user is admin
-            if (payload.role === 'admin') {
+            if (user.role === 'admin') {
                 if (adminLink) adminLink.classList.remove('d-none');
                 if (adminCard) adminCard.classList.remove('d-none');
             }
-        } catch (e) {
-            console.error("Token decoding failed", e);
-            logout();
+        } else {
+            // Not logged in or session expired
+            showLoggedOutUI();
         }
-    } else {
-        if (loggedOutDiv) loggedOutDiv.classList.remove('d-none');
-        if (loggedInDiv) loggedInDiv.classList.add('d-none');
-        if (adminLink) adminLink.classList.add('d-none');
-        if (adminCard) adminCard.classList.add('d-none');
+    } catch (e) {
+        console.error("Auth check failed", e);
+        showLoggedOutUI();
     }
 }
 
-function logout() {
-    localStorage.removeItem('access_token');
+function showLoggedOutUI() {
+    document.getElementById('auth-links-logged-out')?.classList.remove('d-none');
+    document.getElementById('auth-links-logged-in')?.classList.add('d-none');
+    document.getElementById('admin-only-link')?.classList.add('d-none');
+    document.getElementById('admin-card')?.classList.add('d-none');
+}
+
+// Global logout function
+async function logout() {
+    await fetch('/auth/logout', { method: 'POST' });
     window.location.href = '/auth/login';
 }

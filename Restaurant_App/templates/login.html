@@ -1,5 +1,5 @@
-{%include 'layout.html' %}
-
+{% extends 'layout.html' %}
+{% block content %}
 
     <style>
         .login-container {
@@ -11,15 +11,14 @@
         .login-card {
             width: 100%;
             max-width: 400px;
-            padding: 2rem;
+            padding: 2.5rem;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             background: white;
         }
     </style>
 
-
-    <!-- Simple Nav -->
+    <!-- Navigation -->
     <nav class="navbar navbar-light bg-white shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="/">🍕 RestaurantApp</a>
@@ -28,7 +27,8 @@
 
     <div class="container login-container">
         <div class="login-card">
-            <h2 class="text-center fw-bold mb-4">Welcome Back</h2>
+            <h2 class="text-center fw-bold mb-2">Welcome Back</h2>
+            <p class="text-center text-muted mb-4">Please enter your details</p>
             
             <!-- Alert for Errors -->
             <div id="error-alert" class="alert alert-danger d-none" role="alert">
@@ -38,60 +38,65 @@
             <form id="loginForm">
                 <div class="mb-3">
                     <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" required>
+                    <input type="text" class="form-control" id="username" name="username" required placeholder="Enter username">
                 </div>
+                
                 <div class="mb-4">
-                <label for="password" class="form-label">Password</label>
-                <div class="input-group">
-                    <input type="password" class="form-control" id="password" name="password" required>
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
-                        <i class="bi bi-eye"></i>
-                    </button>
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
+                        <!-- SEE PASSWORD BUTTON -->
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-                <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">Login</button>
+                <button type="submit" id="loginBtn" class="btn btn-danger w-100 py-2 fw-bold">
+                    <span id="loginSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    Login
+                </button>
             </form>
 
             <p class="text-center mt-4 mb-0">
-                Don't have an account? <a href="/auth/register" class="text-danger text-decoration-none">Sign Up</a>
+                Don't have an account? <a href="/auth/register" class="text-danger text-decoration-none fw-bold">Sign Up</a>
             </p>
         </div>
     </div>
 
-    <!-- Footer (Using your professional branding) -->
+    <!-- Footer -->
     <footer class="bg-dark text-white py-5 mt-5">
         <div class="container text-center">
             <p class="mb-2">
-                &copy; <span id="year"></span> <strong>Restaurant Management System</strong>. 
-                Built with <span class="text-info">FastAPI</span>.
+                &copy; <span id="year"></span> <strong>Restaurant Management System</strong>
             </p>
             <p class="mb-1 text-light">
-                Developed & Maintained by 
+                Developed by 
                 <a href="https://www.linkedin.com/in/riham-a-hussain/" target="_blank" class="fw-bold text-info text-decoration-none">
                    Riham Hussain
                 </a>
             </p>
-            <p class="small text-secondary mb-3 bridge-text">
-                Bridging the gap from <span class="text-info">AI Engineer</span> to 
-                <span class="text-info">AI Software & Full Stack Engineer</span>
-            </p>
         </div>
     </footer>
 
-    <!-- JavaScript logic -->
     <script>
-        // Update Year
+        // Use the year logic from base.js or keep this fallback
         document.getElementById("year").innerHTML = new Date().getFullYear();
 
-        // Handle Login
         const loginForm = document.getElementById('loginForm');
         const errorAlert = document.getElementById('error-alert');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginSpinner = document.getElementById('loginSpinner');
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Create form data (FastAPI OAuth2 expects x-www-form-urlencoded)
+            // UI Feedback
+            errorAlert.classList.add('d-none');
+            loginBtn.disabled = true;
+            loginSpinner.classList.remove('d-none');
+
+            // FastAPI OAuth2 expects x-www-form-urlencoded
             const formData = new URLSearchParams();
             formData.append('username', document.getElementById('username').value);
             formData.append('password', document.getElementById('password').value);
@@ -104,31 +109,24 @@
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
-                    // Save the token in localStorage
-                    localStorage.setItem('access_token', data.access_token);
-                    // Redirect to home
+                    // COOKIE LOGIC: 
+                    // We don't need to do localStorage.setItem() anymore.
+                    // The server sent a 'Set-Cookie' header, and the browser saved it.
                     window.location.href = '/';
                 } else {
+                    const errorData = await response.json();
+                    errorAlert.innerText = errorData.detail || "Invalid credentials.";
                     errorAlert.classList.remove('d-none');
+                    loginBtn.disabled = false;
+                    loginSpinner.classList.add('d-none');
                 }
             } catch (error) {
                 console.error('Login Error:', error);
-                alert('Something went wrong. Please try again.');
+                alert('Something went wrong. Please check your connection.');
+                loginBtn.disabled = false;
+                loginSpinner.classList.add('d-none');
             }
         });
-        function togglePassword(inputId, btn) {
-            const input = document.getElementById(inputId);
-            const icon = btn.querySelector('i');
-            
-            if (input.type === "password") {
-                input.type = "text";
-                icon.classList.replace('bi-eye', 'bi-eye-slash');
-            } else {
-                input.type = "password";
-                icon.classList.replace('bi-eye-slash', 'bi-eye');
-            }
-        }
+
     </script>
-</body>
-</html>
+{% endblock %}

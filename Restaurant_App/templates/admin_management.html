@@ -1,4 +1,5 @@
-{%include 'layout.html' %}
+{% extends 'layout.html' %}
+{% block content %}
     <nav class="navbar navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">🍕 Admin Dashboard</a>
@@ -29,102 +30,102 @@
     </div>
 
     <script>
-        const token = localStorage.getItem('access_token');
-
-        async function loadUsers() {
-            const response = await fetch('/admin/users', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const users = await response.json();
-                const tbody = document.getElementById('user-table-body');
-                tbody.innerHTML = '';
-                // Inside loadUsers() loop:
-                users.forEach(u => {
-                const isAdmin = u.role === 'admin';
-                
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${u.id}</td>
-                        <td>${u.username} ${u.is_superadmin ? '<span class="badge bg-dark">SUPER</span>' : ''}</td>
-                        <td>${u.email}</td>
-                        <td><span class="badge ${isAdmin ? 'bg-primary' : 'bg-secondary'}">${u.role}</span></td>
-                        <td>
-                            <!-- Promote/Demote Button -->
-                            ${!isAdmin ? 
-                                `<button class="btn btn-sm btn-success me-1" onclick="promote(${u.id})">Promote</button>` : 
-                                `<button class="btn btn-sm btn-outline-danger me-1" onclick="demote(${u.id})">Demote</button>`
-                            }
-
-                            <!-- NEW: Delete Button -->
-                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${u.username}')">
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            } else {
-                alert("Unauthorized! Admins only.");
-                window.location.href = '/';
-            }
+       async function checkAdminAndLoad() {
+    const response = await fetch('/auth/me', { credentials: 'include' });
+    if (response.ok) {
+        const user = await response.json();
+        if (user.role === 'admin') {
+            loadUsers();
+        } else {
+            window.location.href = '/';
         }
+    } else {
+        window.location.href = '/auth/login';
+    }
+}
 
-        async function promote(userId) {
-            if (confirm("Promote this user to Admin?")) {
-                const response = await fetch(`/admin/promote/${userId}`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    loadUsers(); // Refresh table
-                }
-            }
-        }
+checkAdminAndLoad();
 
-        // Add the demote function
-        async function demote(userId) {
-            if (confirm("Revert this Admin back to an ordinary User?")) {
-                const response = await fetch(`/admin/demote/${userId}`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    loadUsers();
-                } else {
-                    const err = await response.json();
-                    alert("Action Failed: " + err.detail);
-                }
-            }
-        }
-        async function deleteUser(userId, username) {
-            // 1. Always ask for confirmation before deleting a user!
-            if (confirm(`Are you sure you want to delete user "${username}"? This will also delete all their orders.`)) {
-                
-                try {
-                    const response = await fetch(`/admin/users/${userId}`, {
-                        method: 'DELETE',
-                        headers: { 
-                            'Authorization': `Bearer ${token}` 
+async function loadUsers() {
+    const response = await fetch('/admin/users', { credentials: 'include' });
+    if (response.ok) {
+        const users = await response.json();
+        const tbody = document.getElementById('user-table-body');
+        tbody.innerHTML = '';
+        users.forEach(u => {
+            const isAdmin = u.role === 'admin';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${u.username} ${u.is_superadmin ? '<span class="badge bg-dark">SUPER</span>' : ''}</td>
+                    <td>${u.email}</td>
+                    <td><span class="badge ${isAdmin ? 'bg-primary' : 'bg-secondary'}">${u.role}</span></td>
+                    <td>
+                        ${!isAdmin ?
+                            `<button class="btn btn-sm btn-success me-1" onclick="promote(${u.id})">Promote</button>` :
+                            `<button class="btn btn-sm btn-outline-danger me-1" onclick="demote(${u.id})">Demote</button>`
                         }
-                    });
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${u.username}')">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } else {
+        alert("Unauthorized! Admins only.");
+        window.location.href = '/';
+    }
+}
 
-                    if (response.status === 204) {
-                        // Success: Refresh the table to show the user is gone
-                        alert("User and their orders deleted successfully.");
-                        loadUsers(); 
-                    } else {
-                        // Failure: Parse the error message from your Python HTTPException
-                        const errorData = await response.json();
-                        alert("Action Failed: " + errorData.detail);
-                    }
-                } catch (error) {
-                    console.error("Delete Error:", error);
-                    alert("Something went wrong while trying to delete the user.");
-                }
-            }
+async function promote(userId) {
+    if (confirm("Promote this user to Admin?")) {
+        const response = await fetch(`/admin/promote/${userId}`, {
+            method: 'PUT',
+            credentials: 'include'
+        });
+        if (response.ok) {
+            loadUsers();
+        } else {
+            const err = await response.json();
+            alert("Action Failed: " + err.detail);
         }
+    }
+}
 
-        if (!token) window.location.href = '/auth/login';
-        else loadUsers();
+async function demote(userId) {
+    if (confirm("Revert this Admin back to an ordinary User?")) {
+        const response = await fetch(`/admin/demote/${userId}`, {
+            method: 'PUT',
+            credentials: 'include'
+        });
+        if (response.ok) {
+            loadUsers();
+        } else {
+            const err = await response.json();
+            alert("Action Failed: " + err.detail);
+        }
+    }
+}
+
+async function deleteUser(userId, username) {
+    if (confirm(`Are you sure you want to delete user "${username}"? This will also delete all their orders.`)) {
+        try {
+            const response = await fetch(`/admin/users/${userId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            if (response.status === 204) {
+                alert("User and their orders deleted successfully.");
+                loadUsers();
+            } else {
+                const errorData = await response.json();
+                alert("Action Failed: " + errorData.detail);
+            }
+        } catch (error) {
+            console.error("Delete Error:", error);
+            alert("Something went wrong while trying to delete the user.");
+        }
+    }
+}
+       
     </script>
+{% endblock %}

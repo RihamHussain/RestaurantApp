@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Cookie, Response  
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
@@ -76,16 +76,20 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 
-def create_access_token(username: str, user_id: int, expires_delta: timedelta, role: Role, is_superadmin: bool):
+def create_access_token(username: str, user_id: int, expires_delta: timedelta, role: str, is_superadmin: bool):
     encode = {'sub': username, 'id': user_id, 'role': role, 'is_superadmin': is_superadmin}
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+async def get_current_user(access_token: Annotated[str | None, Cookie()] = None):
+    # If cookie is missing
+    if not access_token:
+         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='Not authenticated (Cookie missing)')
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
         user_role: str = payload.get('role')
@@ -96,8 +100,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         return {'username': username, 'id': user_id, 'role': user_role, 'is_superadmin': is_superadmin}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail='Could not validate user.')
+                            detail='Invalid token')
 
+@router.get("/me")
+async def get_user_info(current_user: Annotated[dict, Depends(get_current_user)]):
+    return current_user
 
 @router.post("/register")
 async def create_user(db: db_dependency, create_user_request: Create_User_Request):
@@ -134,11 +141,27 @@ async def create_user(db: db_dependency, create_user_request: Create_User_Reques
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-                                 db: db_dependency):
+                                 db: db_dependency,
+                                 response: Response, # Add response parameter
+                                 ):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Could not validate user.')
     token = create_access_token(user.username, user.id, timedelta(minutes=20), user.role, user.is_superadmin)
+    # Set the cookie in the browser
+    response.set_cookie(
+        key="access_token", 
+        value=token, 
+        httponly=True,  # JavaScript cannot read this (Secure!)
+        max_age=1200,   # Expires in 20 minutes (same as token)
+        samesite="lax", 
+        secure=False    # Set to True if using HTTPS
+    )
 
     return {'access_token': token, 'token_type': 'bearer'}
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token")
+    return {"message": "Logged out"}
