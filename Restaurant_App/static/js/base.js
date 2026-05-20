@@ -28,6 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function logout() {
-    await fetch('/auth/logout', { method: 'POST' });
+    await fetch('/auth/logout', { method: 'POST',  credentials: 'include' });
     window.location.href = '/auth/login';
 }

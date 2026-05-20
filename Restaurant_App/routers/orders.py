@@ -1,4 +1,6 @@
+import os
 from typing import Annotated
+from fastapi import Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path
@@ -7,6 +9,12 @@ from ..models import Orders, OrdersStatus
 from ..database import SessionLocal
 from .auth import get_current_user
 import time
+from starlette.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+
+# Setup templates path (consistent with your main.py)
+base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+templates = Jinja2Templates(directory=os.path.join(base_dir, "templates"))
 
 router = APIRouter(
     prefix='/order',
@@ -28,10 +36,26 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 class OrderRequest(BaseModel):
     item: str = Field(min_length=3)
     price: float = Field(gt=0.0)
-    time : int = Field (time.time())
+    time: int = Field(default_factory=lambda: int(time.time())) # Fix float to int evaluation
     order_status : str
 
+def redirect_to_login():
+    redirct_response =  RedirectResponse(url='/auth/login', status_code=status.HTTP_302_FOUND)
+    redirct_response.delete_cookie(key='access_token', path='/')
+    return redirct_response
 
+### Pages ###
+@router.get("/", status_code=status.HTTP_200_OK)
+async def render_orders_page(request: Request, user: user_dependency, db: db_dependency):
+    try:
+        if user is None:
+            raise HTTPException(status_code=401, detail='Authentication Failed')
+        orders = db.query(Orders).filter(Orders.customer_id == user.get('id')).all()
+        return templates.TemplateResponse(request=request, name="orders.html", context={"orders": orders, "user": user})
+    except Exception as e:
+        print("Error fetching orders:", e)
+        return redirect_to_login()
+### Endpoints ###
 @router.get("/", status_code=status.HTTP_200_OK)
 async def read_all(user: user_dependency, db: db_dependency):
     if user is None:

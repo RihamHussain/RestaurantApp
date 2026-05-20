@@ -31,18 +31,19 @@
 
     <script>
        async function checkAdminAndLoad() {
-    const response = await fetch('/auth/me', { credentials: 'include' });
-    if (response.ok) {
-        const user = await response.json();
-        if (user.role === 'admin') {
-            loadUsers();
-        } else {
-            window.location.href = '/';
+            const response = await fetch('/auth/me', { credentials: 'include' });
+            if (response.ok) {
+                const user = await response.json();
+                // Update condition to allow superadmin
+                if (user.role === 'admin' || user.is_superadmin) {
+                    loadUsers();
+                } else {
+                    window.location.href = '/';
+                }
+            } else {
+                window.location.href = '/auth/login';
+            }
         }
-    } else {
-        window.location.href = '/auth/login';
-    }
-}
 
 checkAdminAndLoad();
 

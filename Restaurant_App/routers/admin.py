@@ -40,14 +40,14 @@ async def render_admin_management_page(request: Request):
 
 @router.get("/orders", status_code=status.HTTP_200_OK)
 async def read_all(user: user_dependency, db: db_dependency):
-    if user is None or user.get('role') != 'admin':
+    if user is None or (user.get('role') != 'admin' and not user.get('is_superadmin')):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     return db.query(Orders).all()
 
 
 @router.delete("/orders/{orders_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_orders(user: user_dependency, db: db_dependency, orders_id: int = Path(gt=0)):
-    if user is None or user.get('role') != 'admin':
+    if user is None or (user.get('role') != 'admin' and not user.get('is_superadmin')):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     orders_model = db.query(Orders).filter(Orders.id == orders_id).first()
     if orders_model is None:
@@ -59,14 +59,14 @@ async def delete_orders(user: user_dependency, db: db_dependency, orders_id: int
 # 1. Get all users so the admin can see the list
 @router.get("/users", status_code=status.HTTP_200_OK)
 async def read_all_users(user: user_dependency, db: db_dependency):
-    if user is None or user.get('role') != 'admin':
+    if user is None or (user.get('role') != 'admin' and not user.get('is_superadmin')):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     return db.query(User).all()
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user: user_dependency, db: db_dependency, user_id: int = Path(gt=0)):
     # 1. Basic Auth check
-    if user is None or user.get('role') != 'admin':
+    if user is None or (user.get('role') != 'admin' and not user.get('is_superadmin')):
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
     # 2. Find the target user
@@ -108,7 +108,7 @@ async def delete_user(user: user_dependency, db: db_dependency, user_id: int = P
 # 2. Promote a specific user to Admin
 @router.put("/promote/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def promote_to_admin(user: user_dependency, db: db_dependency, user_id: int = Path(gt=0)):
-    if user is None or user.get('role') != 'admin':
+    if user is None or (user.get('role') != 'admin' and not user.get('is_superadmin')):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     if user.get('is_superadmin') is not True:
         raise HTTPException(status_code=403, detail='Forbidden: Only superadmins can promote users to admin.')
@@ -122,7 +122,7 @@ async def promote_to_admin(user: user_dependency, db: db_dependency, user_id: in
 
 @router.put("/demote/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def demote_to_user(user: user_dependency, db: db_dependency, user_id: int = Path(gt=0)):
-    if user is None or user.get('role') != 'admin':
+    if user is None or (user.get('role') != 'admin' and not user.get('is_superadmin')):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     if user.get('is_superadmin') is not True:
         raise HTTPException(status_code=403, detail='Forbidden: Only superadmins can downgrade admins to users.')

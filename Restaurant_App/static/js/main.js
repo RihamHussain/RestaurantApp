@@ -10,24 +10,21 @@ async function updateNavbar() {
     const adminCard = document.getElementById('admin-card');
 
     try {
-        // ASK THE SERVER FOR USER INFO (Since we can't read cookies directly)
         const response = await fetch('/auth/me', { credentials: 'include' });
-
         
         if (response.ok) {
-            const user = await response.json(); // user = {username, role, ...}
+            const user = await response.json();
             
             if (loggedOutDiv) loggedOutDiv.classList.add('d-none');
             if (loggedInDiv) loggedInDiv.classList.remove('d-none');
             if (usernameSpan) usernameSpan.innerText = user.username;
 
-            // Check if user is admin
-            if (user.role === 'admin') {
+            // Include is_superadmin in the visual UI check
+            if (user.role === 'admin' || user.is_superadmin) {
                 if (adminLink) adminLink.classList.remove('d-none');
                 if (adminCard) adminCard.classList.remove('d-none');
             }
         } else {
-            // Not logged in or session expired
             showLoggedOutUI();
         }
     } catch (e) {
@@ -43,8 +40,7 @@ function showLoggedOutUI() {
     document.getElementById('admin-card')?.classList.add('d-none');
 }
 
-// Global logout function
 async function logout() {
-    await fetch('/auth/logout', { method: 'POST' });
+    await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
     window.location.href = '/auth/login';
 }

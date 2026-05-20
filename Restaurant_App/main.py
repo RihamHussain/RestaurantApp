@@ -28,6 +28,11 @@ def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/menu")
+def menu_page(request: Request):
+    return templates.TemplateResponse(request=request, name="menu.html")
+
+
 app.include_router(auth.router)
 app.include_router(orders.router)
 app.include_router(admin.router)
