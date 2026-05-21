@@ -149,6 +149,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='Could not validate user.')
     token = create_access_token(user.username, user.id, timedelta(minutes=20), user.role, user.is_superadmin)
+    IS_PRODUCTION = os.getenv("RENDER", False)  # Render sets this automatically
     # Set the cookie in the browser
     response.set_cookie(
         key="access_token", 
@@ -156,7 +157,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         httponly=True,  # JavaScript cannot read this (Secure!)
         max_age=1200,   # Expires in 20 minutes (same as token)
         samesite="lax", 
-        secure=True,    # Set to True if using HTTPS,
+        secure=IS_PRODUCTION,    # Set to True if using HTTPS,
         path="/"
     )
 
