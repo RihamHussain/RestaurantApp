@@ -122,7 +122,19 @@ async def delete_orders(user: user_dependency, db: db_dependency, order_id: int 
 
 
 
+@router.put("/orders/{order_id}/status", status_code=status.HTTP_204_NO_CONTENT)
+async def update_order_status(user: user_dependency, db: db_dependency,
+                               new_status: str,
+                              order_id: int = Path(gt=0)):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
 
+    order_model = db.query(Orders).filter(Orders.id == order_id).first()
+    if order_model is None:
+        raise HTTPException(status_code=404, detail='Order not found.')
+    order_model.order_status = new_status
+    db.add(order_model)
+    db.commit()
 
 
 

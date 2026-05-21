@@ -410,7 +410,11 @@
 <nav class="orders-nav">
     <a href="/" class="nav-brand">🍕 RestaurantApp</a>
     <div class="nav-actions">
-        <span class="nav-user">Logged in as <strong>{{ user.username }}</strong></span>
+        <span class="nav-user">
+            Logged in as <strong id="nav-username-orders">...</strong>
+            <span id="admin-badge" style="display:none; margin-left:0.5rem; background:var(--accent); color:white; font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:6px; font-weight:700; letter-spacing:0.05em;">ADMIN</span>
+        </span>
+        <a href="/admin/management" id="admin-panel-link" style="display:none;" class="btn-nav-logout">Admin Panel</a>
         <button class="btn-nav-logout" onclick="logout()">Logout</button>
     </div>
 </nav>
@@ -418,10 +422,10 @@
 <!-- ── Page Header ── -->
 <div class="page-header">
     <div class="page-header-left">
-        <h1>My <span>Orders</span></h1>
-        <p>Track and manage your food orders.</p>
+        <h1 id="page-title">My <span>Orders</span></h1>
+        <p id="page-subtitle">Track and manage your food orders.</p>
     </div>
-    <button class="btn-new-order" onclick="openModal()">
+    <button class="btn-new-order" id="new-order-btn" onclick="openModal()">
         <i class="bi bi-plus-lg"></i> New Order
     </button>
 </div>
@@ -502,20 +506,21 @@
     // ── State ──
     let editingOrderId = null;
     let allOrders = [];
+    let isAdmin = false;
 
     // ── Init ──
-    document.addEventListener('DOMContentLoaded', loadOrders);
+    document.addEventListener('DOMContentLoaded', initAuth);
 
     // ── Load Orders ──
-   // ── Load Orders ──
+    // ── Load Orders (admin sees all, customer sees own) ──
     async function loadOrders() {
         document.getElementById('loading').style.display = 'block';
         document.getElementById('orders-list').innerHTML = '';
         document.getElementById('empty-state').classList.remove('visible');
 
         try {
-            // CHANGE '/order/' to '/order/orders'
-            const res = await fetch('/order/list', { credentials: 'include' });
+            const endpoint = isAdmin ? '/admin/orders' : '/order/list';
+            const res = await fetch(endpoint, { credentials: 'include' });
             if (!res.ok) throw new Error('Failed');
             allOrders = await res.json();
             renderOrders(allOrders);
@@ -541,6 +546,26 @@
             const card = document.createElement('div');
             card.className = 'order-card';
             card.style.animationDelay = `${i * 0.05}s`;
+
+            // Admin sees customer_id + quick complete button; customer sees edit/delete
+            const adminMeta = isAdmin
+                ? `<span style="font-size:0.78rem; color:var(--info); background:rgba(59,130,246,0.1); padding:0.2rem 0.6rem; border-radius:20px;">👤 Customer #${o.customer_id}</span>`
+                : '';
+
+            const actionButtons = isAdmin
+                ? `<button class="btn-icon" title="Mark Complete" onclick="markComplete(${o.id})" style="${o.order_status === 'completed' ? 'opacity:0.35;cursor:not-allowed;' : ''}">
+                        <i class="bi bi-check-lg"></i>
+                   </button>
+                   <button class="btn-icon delete" title="Delete" onclick="deleteOrder(${o.id})">
+                        <i class="bi bi-trash"></i>
+                   </button>`
+                : `<button class="btn-icon" title="Edit" onclick="openEditModal(${o.id})">
+                        <i class="bi bi-pencil"></i>
+                   </button>
+                   <button class="btn-icon delete" title="Delete" onclick="deleteOrder(${o.id})">
+                        <i class="bi bi-trash"></i>
+                   </button>`;
+
             card.innerHTML = `
                 <div class="order-info">
                     <div class="order-item-name">${escHtml(o.item)}</div>
@@ -550,16 +575,10 @@
                         <span class="order-status-badge ${statusClass(o.order_status)}">
                             ${statusDot(o.order_status)} ${escHtml(o.order_status)}
                         </span>
+                        ${adminMeta}
                     </div>
                 </div>
-                <div class="order-actions">
-                    <button class="btn-icon" title="Edit" onclick="openEditModal(${o.id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn-icon delete" title="Delete" onclick="deleteOrder(${o.id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
+                <div class="order-actions">${actionButtons}</div>
             `;
             list.appendChild(card);
         });
@@ -628,14 +647,14 @@
         try {
             let res;
             if (editingOrderId) {
-                res = await fetch(`/order/list/${editingOrderId}`, {
+                res = await fetch(`/order/orders/${editingOrderId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                     credentials: 'include'
                 });
             } else {
-                res = await fetch('/order/list', {
+                res = await fetch('/order/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
@@ -663,7 +682,7 @@
     async function deleteOrder(orderId) {
         if (!confirm('Delete this order? This cannot be undone.')) return;
         try {
-            const res = await fetch(`/order/list/${orderId}`, { method: 'DELETE', credentials: 'include' });
+            const res = await fetch(`/order/orders/${orderId}`, { method: 'DELETE', credentials: 'include' });
             if (res.status === 204) {
                 showToast('Order deleted.', 'success');
                 await loadOrders();
@@ -703,6 +722,59 @@
         toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
         container.appendChild(toast);
         setTimeout(() => toast.remove(), 3500);
+    }
+
+    // ── Auth Init ──
+    async function initAuth() {
+        try {
+            const res = await fetch('/auth/me', { credentials: 'include' });
+            if (!res.ok) { window.location.href = '/auth/login'; return; }
+            const user = await res.json();
+
+            // Populate navbar username
+            const el = document.getElementById('nav-username-orders');
+            if (el) el.textContent = user.username;
+
+            // Admin mode setup
+            if (user.role === 'admin') {
+                isAdmin = true;
+                document.getElementById('admin-badge').style.display = 'inline';
+                document.getElementById('admin-panel-link').style.display = 'inline-block';
+                document.getElementById('new-order-btn').style.display = 'none';
+                document.getElementById('page-title').innerHTML = 'All <span style="color:var(--accent)">Orders</span>';
+                document.getElementById('page-subtitle').textContent = 'Viewing all customer orders — update status below.';
+            }
+        } catch(e) {
+            window.location.href = '/auth/login';
+        }
+        loadOrders();
+    }
+
+    // ── Admin: Mark order as completed ──
+    async function markComplete(orderId) {
+        const order = allOrders.find(o => o.id === orderId);
+        if (!order || order.order_status === 'completed') return;
+        try {
+            const res = await fetch(`/order/orders/${orderId}/status?new_status=completed`, {
+                method: 'PUT',
+                credentials: 'include'
+            });
+            if (res.ok || res.status === 204) {
+                showToast('Order marked as completed!', 'success');
+                await loadOrders();
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Failed to update status.', 'error');
+            }
+        } catch(e) {
+            showToast('Connection error.', 'error');
+        }
+    }
+
+    // ── Logout ──
+    async function logout() {
+        await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+        window.location.href = '/auth/login';
     }
 </script>
 
