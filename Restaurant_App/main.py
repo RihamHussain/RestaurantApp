@@ -15,6 +15,11 @@ base_dir = os.path.dirname(os.path.realpath(__file__))
 templates = Jinja2Templates(directory=os.path.join(base_dir, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(base_dir, "static")), name="static")
 
+app.include_router(auth.router)
+app.include_router(orders.router)
+app.include_router(admin.router)
+app.include_router(users.router)
+
 @app.get("/")
 def test(request: Request):
     return templates.TemplateResponse(
@@ -31,7 +36,3 @@ def health_check():
 def menu_page(request: Request):
     return templates.TemplateResponse(request=request, name="menu.html")
 
-app.include_router(auth.router)
-app.include_router(orders.router)
-app.include_router(admin.router)
-app.include_router(users.router)
