@@ -56,7 +56,7 @@ async def render_orders_page(request: Request, user: user_dependency, db: db_dep
         print("Error fetching orders:", e)
         return redirect_to_login()
 ### Endpoints ###
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get("/list", status_code=status.HTTP_200_OK)
 async def read_all(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')

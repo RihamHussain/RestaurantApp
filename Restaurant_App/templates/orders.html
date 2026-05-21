@@ -515,7 +515,7 @@
 
         try {
             // CHANGE '/order/' to '/order/orders'
-            const res = await fetch('/order/orders', { credentials: 'include' });
+            const res = await fetch('/order/list', { credentials: 'include' });
             if (!res.ok) throw new Error('Failed');
             allOrders = await res.json();
             renderOrders(allOrders);
@@ -628,14 +628,14 @@
         try {
             let res;
             if (editingOrderId) {
-                res = await fetch(`/order/orders/${editingOrderId}`, {
+                res = await fetch(`/order/list/${editingOrderId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                     credentials: 'include'
                 });
             } else {
-                res = await fetch('/order/orders', {
+                res = await fetch('/order/list', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
@@ -663,7 +663,7 @@
     async function deleteOrder(orderId) {
         if (!confirm('Delete this order? This cannot be undone.')) return;
         try {
-            const res = await fetch(`/order/orders/${orderId}`, { method: 'DELETE', credentials: 'include' });
+            const res = await fetch(`/order/list/${orderId}`, { method: 'DELETE', credentials: 'include' });
             if (res.status === 204) {
                 showToast('Order deleted.', 'success');
                 await loadOrders();
