@@ -156,7 +156,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         httponly=True,  # JavaScript cannot read this (Secure!)
         max_age=1200,   # Expires in 20 minutes (same as token)
         samesite="lax", 
-        secure=False,    # Set to True if using HTTPS,
+        secure=True,    # Set to True if using HTTPS,
         path="/"
     )
 
