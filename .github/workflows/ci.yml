@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
   pull_request:
-    branches: [master, main]
+    branches: [main]
 
 jobs:
   test:
@@ -46,8 +46,8 @@ jobs:
           # This maps exactly to what your code in utils.py looks for
           # This satisfies the mandatory field in config.py
           # It doesn't have to be a real URL because tests won't use it.
-          SQLALCHEMY_DATABASE_URL: "postgresql://dummy_user:dummy_pass@localhost:5432/dummy_db"
-          SQLALCHEMY_TEST_DATABASE_URL: postgresql://user:password@localhost:5432/test_db
+          SQLALCHEMY_DATABASE_URL: "postgresql+psycopg2://dummy_user:dummy_pass@localhost:5432/dummy_db"
+          SQLALCHEMY_TEST_DATABASE_URL: postgresql+psycopg2://user:password@localhost:5432/test_db
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           ALGORITHM: ${{ secrets.ALGORITHM }}
           RENDER: "False"
