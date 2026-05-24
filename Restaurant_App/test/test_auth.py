@@ -24,7 +24,7 @@ async def test_authenticate_wrong_password(test_user):
     assert user is False
 
 async def test_create_access_token(test_user):
-    token = create_access_token(test_user.username, test_user.id, timedelta(minutes=15), Role.CUSTOMER.value)
+    token = create_access_token(test_user.username, test_user.id, timedelta(minutes=15), Role.CUSTOMER.value, test_user.is_superadmin)
     assert token is not None
 
     decodedtoken = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

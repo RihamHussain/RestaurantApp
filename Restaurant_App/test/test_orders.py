@@ -4,7 +4,7 @@ from ..models import OrdersStatus
 from .utils import *
 
 def test_read_all_authenticated(test_orders):
-    response = client.get("/order")
+    response = client.get("/order/list")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == [
         {"id": 1, "item": "Pizza", "price": 10.0, "time": 1620000000, "order_status": OrdersStatus.PENDING.value, "customer_id": 1},
